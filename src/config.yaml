@@ -1,0 +1,31 @@
+# Cấu hình pipeline CSAT (L8) - đường dẫn tính từ thư mục gốc của repo
+paths:
+  tickets_csv: data/raw/tickets_history.csv
+  survey_csv: data/raw/survey_responses.csv
+  database: data/csat.db
+  ddl: db/star_schema.sql
+  report_dir: reports
+
+# Tên cột trong 2 file CSV (theo từ điển dữ liệu ở Chương 4 của báo cáo)
+columns:
+  tickets: [ticket_id, center_id, technician_id, status, closed_at]
+  survey: [response_id, ticket_id, score, comment, responded_at]
+
+# Các định dạng ngày được chấp nhận, thử lần lượt từ trên xuống.
+# Chú ý: dd/mm/yyyy được hiểu là ngày/tháng/năm. Sửa lại cho khớp file thật.
+date_formats:
+  - "%Y-%m-%d %H:%M:%S"
+  - "%Y-%m-%dT%H:%M:%S"
+  - "%Y-%m-%d %H:%M"
+  - "%Y-%m-%d"
+  - "%d/%m/%Y %H:%M:%S"
+  - "%d/%m/%Y %H:%M"
+  - "%d/%m/%Y"
+  - "%d-%m-%Y"
+
+rules:
+  closed_status: DA_DONG
+  score_min: 1
+  score_max: 5
+  satisfied_min_score: 4      # điểm >= 4 tính là hài lòng (CSAT)
+  comment_max_len: 500
