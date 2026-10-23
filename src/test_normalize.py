@@ -23,3 +23,4 @@ def test_diem_phai_la_so_nguyen():
     assert parse_score("4") == 4 and parse_score("4.0") == 4
     assert parse_score("4.5") is None and parse_score("abc") is None and parse_score(None) is None
 
+
