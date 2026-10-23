@@ -45,3 +45,5 @@ def chart_technician(df, ref_value, source, stamp):
                            Patch(color="#1f6feb", label="Đủ mẫu")], fontsize=8, loc="lower right")
     fig.tight_layout(rect=(0, 0.04, 1, 1)); _footer(fig, source, stamp)
     return fig
+
+
