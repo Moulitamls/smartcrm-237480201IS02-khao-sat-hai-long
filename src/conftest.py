@@ -7,7 +7,7 @@ from src.pipeline import run_from_config
 
 @pytest.fixture
 def cfg():
-    return yaml.safe_load(open("config/config.yaml", encoding="utf-8"))
+    return yaml.safe_load(open("src/config.yaml", encoding="utf-8"))
 
 
 def write_csvs(tmp_path, tickets, survey):
