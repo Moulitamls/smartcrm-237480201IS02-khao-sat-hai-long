@@ -1,4 +1,4 @@
-from tests.conftest import T, S, run_pipeline
+from src.conftest import T, S, run_pipeline 
 from src.pipeline import run_from_config
 
 
