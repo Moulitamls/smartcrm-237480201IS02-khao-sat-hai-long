@@ -3,10 +3,10 @@ import sqlite3
 import matplotlib
 matplotlib.use("Agg")
 import yaml
-from src.dashboard import queries as q
-from src.dashboard.charts import chart_trend, chart_technician
+from src import queries as q
+from src.charts import chart_trend, chart_technician
 
-cfg = yaml.safe_load(open("config/config.yaml", encoding="utf-8"))
+cfg = yaml.safe_load(open("src/config.yaml", encoding="utf-8"))
 R, conn = cfg["rules"], sqlite3.connect(cfg["paths"]["db"])
 f, stamp, src = q.Filters(), q.data_timestamp(conn), cfg["dashboard"]["source_note"]
 ov = q.overall(conn, f, R["csat_min_score"])
