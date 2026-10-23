@@ -2,7 +2,7 @@ paths:
   tickets_csv: data/raw/tickets_history.csv
   survey_csv: data/raw/survey_responses.csv
   db: data/csat.db
-  schema: db/star_schema.sql
+  schema: src/star_schema.sql
   reports_dir: reports
 
 
