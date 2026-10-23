@@ -1,21 +1,23 @@
-"""Dashboard Streamlit: streamlit run src/dashboard/app.py
+"""Dashboard Streamlit: streamlit run src/app.py
 Ba trạng thái: đang tải (spinner) · rỗng (giải thích) · lỗi (thông báo + nút Thử lại)."""
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+# Đảm bảo thư mục gốc của dự án nằm trong sys.path để import src.* hoạt động
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import sqlite3
 import pandas as pd
 import streamlit as st
 import yaml
 
-from src.dashboard import queries as q
-from src.dashboard.charts import chart_trend, chart_technician, EMPTY_MESSAGE
+from src import queries as q
+from src.charts import chart_trend, chart_technician, EMPTY_MESSAGE
 
-CFG = yaml.safe_load(open(Path(__file__).resolve().parents[2] / "config" / "config.yaml", encoding="utf-8"))
-DB = str(Path(__file__).resolve().parents[2] / CFG["paths"]["db"])
+# Đường dẫn config và DB theo cấu trúc phẳng trong src/
+CFG = yaml.safe_load(open(Path(__file__).resolve().parents[1] / "src" / "config.yaml", encoding="utf-8"))
+DB = str(Path(__file__).resolve().parents[1] / CFG["paths"]["db"])
 R = CFG["rules"]
-
 
 @st.cache_data(ttl=CFG["dashboard"]["cache_ttl_seconds"])
 def load_all(date_from, date_to, center_keys):
@@ -34,39 +36,55 @@ def load_all(date_from, date_to, center_keys):
     finally:
         conn.close()
 
-
 st.set_page_config(page_title="CSAT — Mekong Mobile", layout="wide")
 st.title("CSAT sau bảo hành — Mekong Mobile")
 
 try:
     with st.spinner("Đang tải dữ liệu..."):
+        # Tải metadata trước để lấy khoảng ngày và danh sách trung tâm
         base = load_all(None, None, ())
         lo, hi = base["range"]
+        
         st.sidebar.header("Bộ lọc")
         d1 = st.sidebar.date_input("Từ ngày (ngày đóng phiếu)", pd.to_datetime(lo))
         d2 = st.sidebar.date_input("Đến ngày", pd.to_datetime(hi))
         names = st.sidebar.multiselect("Trung tâm", base["centers"]["center_name"].tolist())
         keys = tuple(base["centers"].loc[base["centers"]["center_name"].isin(names), "center_key"])
+        
+        # Tải dữ liệu đã lọc
         data = load_all(str(d1), str(d2), keys)
-except Exception as e:                       # trạng thái LỖI
+except Exception as e:                       # TRẠNG THÁI LỖI
     st.error(f"Không tải được dữ liệu: {e}")
     if st.button("Thử lại"):
-        st.cache_data.clear(); st.rerun()
+        st.cache_data.clear()
+        st.rerun()
     st.stop()
 
+# Hiển thị 3 thẻ chỉ số (theo đúng Báo cáo Mục 3.3)
 src, stamp, ov = CFG["dashboard"]["source_note"], data["stamp"], data["overall"]
 c1, c2, c3 = st.columns(3)
 c1.metric("Điểm hài lòng TB", q.fmt_avg(ov["avg_score"]))
 c2.metric("Tỉ lệ CSAT", q.fmt_pct(ov["csat_rate"]))
 c3.metric("Tỉ lệ phản hồi", q.fmt_pct(ov["response_rate"]))
 
-if data["trend"].empty:                      # trạng thái RỖNG
+# Hiển thị biểu đồ hoặc thông báo rỗng
+if data["trend"].empty:                      # TRẠNG THÁI RỖNG
     st.info(EMPTY_MESSAGE)
 else:
     f1 = chart_trend(data["trend"], ov["csat_rate"], src, stamp)
     f2 = chart_technician(data["tech"], ov["avg_score"], src, stamp)
-    (st.pyplot(f1) if f1 else st.info(EMPTY_MESSAGE))
-    (st.pyplot(f2) if f2 else st.info(EMPTY_MESSAGE))
+    
+    # Xử lý an toàn nếu hàm chart trả về None
+    if f1: st.pyplot(f1)
+    else: st.info(EMPTY_MESSAGE)
+    
+    if f2: st.pyplot(f2)
+    else: st.info(EMPTY_MESSAGE)
+    
     st.subheader("Phản hồi điểm thấp (≤ 2)")
-    st.dataframe(data["low"]) if len(data["low"]) else st.info("Không có phản hồi điểm thấp trong bộ lọc này.")
+    if len(data["low"]):
+        st.dataframe(data["low"], use_container_width=True)
+    else:
+        st.info("Không có phản hồi điểm thấp trong bộ lọc này.")
+
 st.caption(f"{src} · Dữ liệu cập nhật lúc {stamp}")
