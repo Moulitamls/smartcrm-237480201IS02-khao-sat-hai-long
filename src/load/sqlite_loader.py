@@ -1,108 +1,113 @@
-"""Tầng load: nạp staging, dựng kho dữ liệu (star schema) và ghi bảng reject vào SQLite."""
+"""Nạp staging, dimension (theo khoá nghiệp vụ), fact (theo lô ngày). Chạy lại không nhân đôi dòng."""
 import sqlite3
-from pathlib import Path
-
+from datetime import datetime
 import pandas as pd
 
-WAREHOUSE_TABLES = ["fact_survey", "dim_technician", "dim_center", "dim_date"]
+UNKNOWN_KEY = -1
 
 
-def connect(db_path):
-    Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+def connect(db_path, schema_path):
     conn = sqlite3.connect(db_path)
-    conn.execute("PRAGMA foreign_keys = ON")
+    with open(schema_path, encoding="utf-8") as f:
+        conn.executescript(f.read())
     return conn
 
 
-def load_staging(conn, raw_tickets, raw_responses):
-    """Nạp nguyên văn dữ liệu nguồn vào staging (chưa làm sạch)."""
-    raw_tickets.to_sql("stg_ticket", conn, if_exists="replace", index=False)
-    raw_responses.to_sql("stg_survey_response", conn, if_exists="replace", index=False)
+def _py(v):
+    if v is None or (not isinstance(v, str) and pd.isna(v)):
+        return None
+    if hasattr(v, "item"):
+        return v.item()
+    return v
 
 
-def load_rejects(conn, rejects):
-    rejects.to_sql("reject_rows", conn, if_exists="replace", index=False)
+def load_staging(conn, tickets_df, survey_df):
+    """Staging là vùng đáp: xoá và nạp lại toàn bộ mỗi lần chạy (không tích luỹ)."""
+    t = tickets_df.copy()
+    for c in ("created_at", "closed_at"):
+        if c in t.columns:
+            t[c] = t[c].dt.strftime("%Y-%m-%d %H:%M:%S")
+    t = t.drop(columns=[c for c in t.columns if c.endswith("_invalid")])
+    s = survey_df.copy()
+    s["responded_at"] = s["responded_at"].dt.strftime("%Y-%m-%d %H:%M:%S")
+    s["score"] = s["score_int"].astype(object).where(s["score_int"].notna(), None)
+    s = s[["response_id", "ticket_id", "score", "comment", "responded_at"]]
+    t.to_sql("stg_ticket", conn, if_exists="replace", index=False)
+    s.to_sql("stg_survey_response", conn, if_exists="replace", index=False)
 
 
-def _date_key(ts):
-    return ts.dt.strftime("%Y%m%d").astype("Int64")
-
-
-def build_dimensions(closed, responses):
-    """Dựng 3 bảng chiều từ dữ liệu đã làm sạch."""
-    day_values = pd.concat([closed["closed_at"], responses["responded_at"]]).dropna().dt.normalize()
-    days = pd.date_range(day_values.min(), day_values.max(), freq="D")
-    dim_date = pd.DataFrame({"full_date": days})
-    dim_date["date_key"] = _date_key(dim_date["full_date"])
-    dim_date["month"] = dim_date["full_date"].dt.month
-    dim_date["quarter"] = dim_date["full_date"].dt.quarter
-    dim_date["year"] = dim_date["full_date"].dt.year
-    dim_date["year_month"] = dim_date["full_date"].dt.strftime("%Y-%m")
-    dim_date["full_date"] = dim_date["full_date"].dt.strftime("%Y-%m-%d")
-
-    centers = sorted(closed["center_id"].dropna().unique())
-    dim_center = pd.DataFrame(
-        {
-            "center_key": range(1, len(centers) + 1),
-            "center_id": centers,
-            # Dữ liệu nguồn chưa có tên trung tâm: dùng tên tạm, thay khi có file danh mục.
-            "center_name": [f"Trung tâm {c}" for c in centers],
-        }
-    )
-
-    # Mỗi kỹ thuật viên gắn với trung tâm xuất hiện nhiều nhất trong các phiếu của họ.
-    tech_center = (
-        closed.groupby("technician_id")["center_id"].agg(lambda s: s.mode().iloc[0]).reset_index()
-    )
-    dim_technician = pd.DataFrame(
-        {
-            "technician_key": range(1, len(tech_center) + 1),
-            "technician_id": tech_center["technician_id"].values,
-            "center_id": tech_center["center_id"].values,
-        }
-    )
-    return dim_date, dim_center, dim_technician
-
-
-def build_fact(closed, responses, dim_center, dim_technician, closed_date_only=True):
-    """Mỗi phiếu đã đóng một dòng; LEFT JOIN với phản hồi (grain: một phiếu đã đóng)."""
-    merged = closed.merge(
-        responses[["ticket_id", "score", "comment", "responded_at"]], on="ticket_id", how="left"
-    )
-    center_key = dict(zip(dim_center["center_id"], dim_center["center_key"]))
-    tech_key = dict(zip(dim_technician["technician_id"], dim_technician["technician_key"]))
-    has_response = merged["score"].notna()
-    closed_day = merged["closed_at"].dt.normalize()
-    responded_day = merged["responded_at"].dt.normalize()
-    fact = pd.DataFrame(
-        {
-            "ticket_id": merged["ticket_id"],
-            "closed_date_key": _date_key(closed_day),
-            "responded_date_key": _date_key(responded_day),
-            "center_key": merged["center_id"].map(center_key),
-            "technician_key": merged["technician_id"].map(tech_key),
-            "has_response": has_response.astype(int),
-            "score": merged["score"],
-            "is_satisfied": pd.Series(pd.NA, index=merged.index, dtype="Int64"),
-            "response_delay_days": (responded_day - closed_day).dt.days.astype("Int64"),
-            "comment": merged["comment"],
-        }
-    )
-    return fact, merged
-
-
-def load_warehouse(conn, ddl_path, dims, fact, satisfied_min_score):
-    """Tạo lại các bảng kho theo DDL rồi nạp dữ liệu (chạy lại nhiều lần vẫn cho kết quả giống nhau)."""
-    for table in WAREHOUSE_TABLES:
-        conn.execute(f"DROP TABLE IF EXISTS {table}")
-    conn.executescript(Path(ddl_path).read_text(encoding="utf-8"))
-    fact = fact.copy()
-    scored = fact["score"].notna()
-    fact.loc[scored, "is_satisfied"] = (fact.loc[scored, "score"] >= satisfied_min_score).astype(int)
-    dim_date, dim_center, dim_technician = dims
-    dim_date.to_sql("dim_date", conn, if_exists="append", index=False)
-    dim_center.to_sql("dim_center", conn, if_exists="append", index=False)
-    dim_technician.to_sql("dim_technician", conn, if_exists="append", index=False)
-    fact.to_sql("fact_survey", conn, if_exists="append", index=False)
+def load_dim_date(conn, dates):
+    dates = pd.Series(dates).dropna()
+    if dates.empty:
+        return 0
+    rng = pd.date_range(dates.min().normalize(), dates.max().normalize(), freq="D")
+    rows = [(int(d.strftime("%Y%m%d")), d.strftime("%Y-%m-%d"), d.year, (d.month - 1) // 3 + 1,
+             d.month, d.day, d.strftime("%Y-%m")) for d in rng]
+    conn.executemany("INSERT OR IGNORE INTO dim_date VALUES (?,?,?,?,?,?,?)", rows)
     conn.commit()
-    return len(fact)
+    return len(rows)
+
+
+def load_dim_business_key(conn, table, id_col, name_col, ids, label):
+    """Dimension nạp theo khoá nghiệp vụ + dòng 'Không xác định' (key = -1)."""
+    conn.execute(f"INSERT OR IGNORE INTO {table} ({table.replace('dim_', '')}_key, {id_col}, {name_col}) "
+                 f"VALUES ({UNKNOWN_KEY}, 'UNKNOWN', 'Không xác định')")
+    rows = [(str(i), f"{label} {i}") for i in sorted(set(pd.Series(ids).dropna()), key=str)]
+    conn.executemany(f"INSERT OR IGNORE INTO {table} ({id_col}, {name_col}) VALUES (?,?)", rows)
+    conn.commit()
+
+
+_UPSERT = """
+INSERT INTO fact_survey (ticket_id, response_id, closed_date_key, responded_date_key, center_key,
+  technician_key, has_response, score, is_satisfied, response_delay_days, comment_length, hours_to_respond, loaded_at)
+VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+ON CONFLICT(ticket_id) DO UPDATE SET
+  response_id=excluded.response_id, closed_date_key=excluded.closed_date_key,
+  responded_date_key=excluded.responded_date_key, center_key=excluded.center_key,
+  technician_key=excluded.technician_key, has_response=excluded.has_response,
+  score=excluded.score, is_satisfied=excluded.is_satisfied,
+  response_delay_days=excluded.response_delay_days, comment_length=excluded.comment_length,
+  hours_to_respond=excluded.hours_to_respond, loaded_at=excluded.loaded_at
+"""
+
+
+def load_fact_by_day(conn, closed_tickets, survey_ok, csat_min=4):
+    """Nạp fact theo lô ngày đóng phiếu; mỗi lô một transaction. Trả về danh sách (ngày, số dòng)."""
+    m = closed_tickets.merge(
+        survey_ok[["ticket_id", "response_id", "score_int", "comment", "responded_at"]],
+        on="ticket_id", how="left")
+    centers = dict(conn.execute("SELECT center_id, center_key FROM dim_center"))
+    techs = dict(conn.execute("SELECT technician_id, technician_key FROM dim_technician"))
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    m["closed_day"] = m["closed_at"].dt.normalize()
+    batches = []
+    for day, g in m.groupby("closed_day"):
+        rows = []
+        for r in g.itertuples(index=False):
+            has = pd.notna(r.response_id)
+            resp_key = int(r.responded_at.strftime("%Y%m%d")) if has and pd.notna(r.responded_at) else None
+            hours = max(0.0, (r.responded_at - r.closed_at).total_seconds() / 3600) if has and pd.notna(r.responded_at) else None
+            rows.append((
+                r.ticket_id, _py(r.response_id) if has else None,
+                int(day.strftime("%Y%m%d")), resp_key,
+                centers.get(str(r.center_id), UNKNOWN_KEY) if pd.notna(r.center_id) else UNKNOWN_KEY,
+                techs.get(str(r.technician_id), UNKNOWN_KEY) if pd.notna(r.technician_id) else UNKNOWN_KEY,
+                1 if has else 0, int(r.score_int) if has else None,
+                (1 if r.score_int >= csat_min else 0) if has else None,
+                (r.responded_at.normalize() - r.closed_at.normalize()).days if has and pd.notna(r.responded_at) else None,
+                len(r.comment) if has and pd.notna(r.comment) else None, hours, now))
+        with conn:
+            conn.executemany(_UPSERT, rows)
+        batches.append((day.strftime("%Y-%m-%d"), len(rows)))
+    return batches
+
+
+def save_rejects(conn, rejects):
+    with conn:
+        conn.execute("DELETE FROM reject_rows")
+        rejects.to_sql("reject_rows", conn, if_exists="append", index=False)
+
+
+def count(conn, table):
+    return conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+
