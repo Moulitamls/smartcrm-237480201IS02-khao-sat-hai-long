@@ -1,31 +1,33 @@
-# Cấu hình pipeline CSAT (L8) - đường dẫn tính từ thư mục gốc của repo
 paths:
   tickets_csv: data/raw/tickets_history.csv
   survey_csv: data/raw/survey_responses.csv
-  database: data/csat.db
-  ddl: db/star_schema.sql
-  report_dir: reports
+  db: data/csat.db
+  schema: db/star_schema.sql
+  reports_dir: reports
 
-# Tên cột trong 2 file CSV (theo từ điển dữ liệu ở Chương 4 của báo cáo)
+
 columns:
-  tickets: [ticket_id, center_id, technician_id, status, closed_at]
+  tickets: [ticket_id, center_id, technician_id, status, closed_at]   # created_at nếu có sẽ được chuẩn hoá
   survey: [response_id, ticket_id, score, comment, responded_at]
+closed_status: DA_DONG
 
-# Các định dạng ngày được chấp nhận, thử lần lượt từ trên xuống.
-# Chú ý: dd/mm/yyyy được hiểu là ngày/tháng/năm. Sửa lại cho khớp file thật.
+# Dạng có dấu / và - luôn hiểu là ngày/tháng/năm
 date_formats:
   - "%Y-%m-%d %H:%M:%S"
-  - "%Y-%m-%dT%H:%M:%S"
   - "%Y-%m-%d %H:%M"
   - "%Y-%m-%d"
+  - "%Y-%m-%dT%H:%M:%S"
   - "%d/%m/%Y %H:%M:%S"
   - "%d/%m/%Y %H:%M"
   - "%d/%m/%Y"
   - "%d-%m-%Y"
-
 rules:
-  closed_status: DA_DONG
-  score_min: 1
-  score_max: 5
-  satisfied_min_score: 4      # điểm >= 4 tính là hài lòng (CSAT)
-  comment_max_len: 500
+  min_score: 1
+  max_score: 5
+  max_comment_len: 500
+  csat_min_score: 4        # tỉ lệ CSAT = số phản hồi chấm >= 4 / tổng phản hồi
+  low_score_max: 2         # phản hồi điểm thấp: score <= 2
+  small_sample_threshold: 10
+dashboard:
+  cache_ttl_seconds: 60
+  source_note: "Nguồn: tickets_history.csv, survey_responses.csv (qua pipeline ETL)"
