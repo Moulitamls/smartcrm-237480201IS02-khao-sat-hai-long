@@ -45,3 +45,4 @@ def write_quality_report(summary, reports_dir):
     path.write_text("\n".join(L), encoding="utf-8")
     return str(path)
 
+
