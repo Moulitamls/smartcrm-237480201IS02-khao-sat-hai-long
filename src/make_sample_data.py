@@ -67,3 +67,5 @@ survey = pd.concat([survey, pd.DataFrame([{"response_id": "X00001", "ticket_id":
 tickets.to_csv(OUT / "tickets_history.csv", index=False, encoding="utf-8")
 survey.to_csv(OUT / "survey_responses.csv", index=False, encoding="utf-8")
 print(f"Đã sinh {len(tickets)} phiếu và {len(survey)} phản hồi (DỮ LIỆU MẪU) vào {OUT}/")
+
+
