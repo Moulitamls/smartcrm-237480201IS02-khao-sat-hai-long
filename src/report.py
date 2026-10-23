@@ -1,41 +1,47 @@
-"""Ghi báo cáo chất lượng dữ liệu (markdown) sau mỗi lần chạy pipeline."""
+"""Đối chiếu số dòng staging ↔ fact và ghi báo cáo chất lượng dạng markdown."""
 from datetime import datetime
 from pathlib import Path
 
 
-def write_report(report_dir, stats):
-    Path(report_dir).mkdir(parents=True, exist_ok=True)
-    path = Path(report_dir) / f"chat-luong-{datetime.now():%Y%m%d}.md"
-    lines = [
-        f"# Báo cáo chất lượng dữ liệu CSAT ({datetime.now():%d/%m/%Y %H:%M})",
-        "",
-        "## Số dòng trước và sau",
-        "",
-        "| Bảng | Dòng đọc | Dòng bị loại | Dòng hợp lệ |",
-        "|---|---|---|---|",
-    ]
-    for t in stats["tables"]:
-        lines.append(f"| {t['name']} | {t['read']} | {t['rejected']} | {t['valid']} |")
-    lines += [
-        "",
-        f"Tỉ lệ phản hồi: {stats['responses_valid']} / {stats['closed_tickets']} "
-        f"phiếu đã đóng = {stats['response_rate']:.1f}%",
-        f"fact_survey: {stats['fact_rows']} dòng",
-        "",
-        "## Lý do bị loại",
-        "",
-    ]
-    if stats["reject_by_reason"]:
-        lines += ["| Bảng | Lý do | Số dòng |", "|---|---|---|"]
-        lines += [f"| {s} | {r} | {n} |" for (s, r), n in stats["reject_by_reason"].items()]
-    else:
-        lines.append("Không có dòng nào bị loại.")
-    lines += ["", "## Tỉ lệ ô trống từng cột (dữ liệu nguồn)", ""]
-    for prof in stats["profiles"]:
-        lines += [f"### {prof['name']} ({prof['rows']} dòng, {prof['cols']} cột)", "",
-                  "| Cột | Số ô trống | Tỉ lệ (%) |", "|---|---|---|"]
-        for _, r in prof["profile"].iterrows():
-            lines.append(f"| {r['cot']} | {r['so_o_trong']} | {r['ti_le_trong_pct']} |")
-        lines.append("")
-    path.write_text("\n".join(lines), encoding="utf-8")
-    return path
+def reconcile(stg_ticket, fact_rows, rejected_tickets, open_tickets, stg_survey, survey_in_fact, rejected_surveys):
+    """stg_ticket = fact + phiếu bị loại + phiếu chưa đóng; stg_survey = phản hồi vào fact + phản hồi bị loại."""
+    return {
+        "stg_ticket": stg_ticket, "fact_rows": fact_rows,
+        "rejected_tickets": rejected_tickets, "open_tickets": open_tickets,
+        "ticket_check": stg_ticket == fact_rows + rejected_tickets + open_tickets,
+        "stg_survey": stg_survey, "survey_in_fact": survey_in_fact,
+        "rejected_surveys": rejected_surveys,
+        "survey_check": stg_survey == survey_in_fact + rejected_surveys,
+    }
+
+
+def write_quality_report(summary, reports_dir):
+    Path(reports_dir).mkdir(parents=True, exist_ok=True)
+    today = datetime.now().strftime("%Y-%m-%d")
+    path = Path(reports_dir) / f"chatluong-{today}.md"
+    rc = summary["reconcile"]
+    L = [f"# Báo cáo chất lượng dữ liệu — {summary['finished_at']}", "",
+         "## 1. Nguồn", "", "| Nguồn | Số dòng | Số cột |", "|---|---|---|"]
+    for p in summary["profiles"]:
+        L.append(f"| {p['name']} | {p['rows']} | {p['cols']} |")
+    L += ["", "## 2. Đối chiếu staging ↔ fact", "",
+          "| Chỉ số | Giá trị |", "|---|---|",
+          f"| Dòng stg_ticket | {rc['stg_ticket']} |",
+          f"| − Phiếu bị loại (reject_rows) | {rc['rejected_tickets']} |",
+          f"| − Phiếu chưa đóng (không thuộc grain của fact) | {rc['open_tickets']} |",
+          f"| = Dòng fact_survey | {rc['fact_rows']} |",
+          f"| Khớp công thức | {'ĐẠT' if rc['ticket_check'] else 'LỆCH — cần điều tra'} |",
+          f"| Dòng stg_survey_response | {rc['stg_survey']} |",
+          f"| − Phản hồi bị loại | {rc['rejected_surveys']} |",
+          f"| = Phản hồi nằm trong fact (has_response=1) | {rc['survey_in_fact']} |",
+          f"| Khớp công thức | {'ĐẠT' if rc['survey_check'] else 'LỆCH — cần điều tra'} |",
+          "", "## 3. Dòng bị loại theo lý do", "", "| Bảng | Lý do | Số dòng |", "|---|---|---|"]
+    for (tbl, reason), n in summary["reject_counts"].items():
+        L.append(f"| {tbl} | {reason} | {n} |")
+    if not summary["reject_counts"]:
+        L.append("| — | không có dòng bị loại | 0 |")
+    L += ["", "## 4. Lô nạp fact theo ngày", "",
+          f"Số lô: {len(summary['batches'])}; tổng dòng ghi: {sum(n for _, n in summary['batches'])}.", ""]
+    path.write_text("\n".join(L), encoding="utf-8")
+    return str(path)
+
