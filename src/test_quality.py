@@ -1,5 +1,4 @@
-from tests.conftest import T, S, run_pipeline
-
+from src.conftest import T, S, run_pipeline
 
 def reasons(conn):
     return dict(conn.execute("SELECT record_key, reason FROM reject_rows").fetchall())
