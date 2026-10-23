@@ -1,7 +1,6 @@
 import pandas as pd
-from tests.conftest import T, S, run_pipeline
-from src.dashboard import queries as q
-
+from src.conftest import T, S, run_pipeline
+from src import queries as q 
 
 def test_csat_va_ty_le_phan_hoi_tinh_dung(cfg, tmp_path):               # luồng đúng
     tk = [T(f"T{i}") for i in range(1, 5)]
