@@ -1,5 +1,4 @@
-from tests.conftest import T, S, run_pipeline
-
+from src.conftest import T, S, run_pipeline
 
 def test_pipeline_chay_tron_ven_bang_mot_lenh_tren_du_lieu_nho(cfg, tmp_path):
     tk = [T("T1"), T("T2", status="HOAN_TAT", closed=""), T("T3", closed="05/03/2026")]
