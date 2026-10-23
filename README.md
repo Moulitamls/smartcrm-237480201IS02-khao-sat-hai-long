@@ -4,62 +4,51 @@ Sinh viên: MOONLASING Moulita · MSSV 237480201IS02 · GVHD: ThS. Nguyễn Minh
 
 ## 1. Giới thiệu
 
-Pipeline dữ liệu cho luồng L8: đọc `tickets_history.csv` và `survey_responses.csv`, chuẩn hóa, kiểm tra chất lượng, rồi nạp vào kho dữ liệu dạng star schema (`fact_survey` và 3 bảng dimension) để tính CSAT theo trung tâm, kỹ thuật viên và tháng. Thiết kế chi tiết nằm trong báo cáo Bài tập 1; các thay đổi thiết kế nằm trong `docs/thay-doi-thiet-ke.md`.
+Pipeline dữ liệu cho luồng L8: đọc `tickets_history.csv` và `survey_responses.csv`, chuẩn hóa, kiểm tra chất lượng, rồi nạp vào kho dữ liệu dạng star schema (`fact_survey` và 3 bảng dimension) để tính CSAT theo trung tâm, kỹ thuật viên và tháng. Sprint 2 bổ sung nạp dimension theo khoá nghiệp vụ, nạp fact theo lô ngày, dashboard 2 biểu đồ và 17 unit test. Thiết kế chi tiết nằm trong báo cáo Bài tập 1; các thay đổi thiết kế nằm trong `docs/thay-doi-thiet-ke.md`.
 
-## 2. Yêu cầu môi trường
+## 2. Môi trường
+Python 3.11+ (đã chạy trên 3.12). Thư viện: xem `requirements.txt`. Không cần cài DBMS (dùng SQLite).
 
-- Python 3.10 trở lên (đã chạy thử với Python 3.12)
-- SQLite 3 (đi kèm Python, không cần cài thêm)
-- Thư viện: pandas, PyYAML, pytest (xem `requirements.txt`)
-- Dữ liệu nguồn: đặt `tickets_history.csv` và `survey_responses.csv` vào `data/raw/` (file CSV không đưa lên Git)
+## 3. Các bước dựng hệ thống (mỗi bước một lệnh)
+1. `git clone https://github.com/Moulitamls/smartcrm-237480201IS02-khao-sathai-long.git`
+2. `cd smartcrm-237480201IS02-khao-sathai-long`
+3. `python -m venv .venv`
+4. Kích hoạt môi trường — Windows: `.venv\Scripts\activate` · macOS/Linux: `source .venv/bin/activate`
+5. `pip install -r requirements.txt`
+6. Đặt hai file CSV thật vào `data/raw/` (tên `tickets_history.csv`, `survey_responses.csv`).
+   Chưa có CSV thật thì sinh dữ liệu mẫu để thử: `python -m scripts.make_sample_data`
+7. `python -m src.pipeline --config config/config.yaml`
+   → tạo `data/csat.db` và `reports/chatluong-<ngày>.md`; dòng cuối phải in `ĐẠT` ở mục `[reconcile]`.
+8. `python -m src.pipeline --config config/config.yaml` (chạy lần hai — số dòng `fact_survey` phải giữ nguyên)
+9. `python -m pytest -q` → phải hiện `17 passed`
+10. `streamlit run src/dashboard/app.py` → mở http://localhost:8501
+11. `python -m scripts.export_charts` → ghi 2 biểu đồ vào `docs/` (dùng làm minh chứng)
 
-Cài đặt trong môi trường ảo (tránh lỗi `externally-managed-environment`):
+Nếu CSV thật có tên cột hoặc định dạng ngày khác: sửa `config/config.yaml` (`columns`, `date_formats`), không sửa code.
 
-```bash
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-## 3. Cách chạy
-
-```bash
-python -m src.pipeline --config config/config.yaml   # chạy toàn bộ pipeline bằng một lệnh
-python -m pytest -q                                   # chạy unit test
-```
-
-Chạy từ thư mục gốc của repo. Kết quả: file `data/csat.db` (staging, kho dữ liệu, `reject_rows`) và báo cáo `reports/chat-luong-<ngày>.md`.
-
-## 4. Cấu trúc thư mục
-
-| Thư mục / file | Vai trò (khớp sơ đồ data flow, Chương 4) |
+## 4. Cấu trúc mã nguồn
+| Đường dẫn | Vai trò |
 |---|---|
-| `src/extract/` | Đọc 2 file CSV, thống kê số dòng, số cột, tỉ lệ ô trống |
-| `src/transform/` | Chuẩn hóa kiểu dữ liệu và ngày (nhiều định dạng) |
-| `src/quality/` | Kiểm tra quy tắc chất lượng; ghi dòng lỗi vào `reject_rows` kèm lý do |
-| `src/load/` | Nạp staging, dựng `dim_date`, `dim_center`, `dim_technician`, `fact_survey` |
-| `src/pipeline.py` | Điểm vào: chạy extract → transform → quality → load → báo cáo |
-| `config/config.yaml` | Đường dẫn, tên cột, định dạng ngày, ngưỡng quy tắc |
-| `db/star_schema.sql` | DDL kho dữ liệu (SQLite) |
-| `tests/` | Unit test |
-| `docs/` | Nhật ký thay đổi thiết kế, ảnh kết quả chạy |
+| `src/extract/reader.py` | Đọc CSV, kiểm tra cột bắt buộc, thống kê ô trống |
+| `src/transform/normalize.py` | Chuẩn hoá ngày (8 định dạng), ép điểm về số nguyên |
+| `src/quality/rules.py`, `rejects.py` | Quy tắc chất lượng, bảng `reject_rows` (mỗi dòng một lý do) |
+| `src/load/sqlite_loader.py` | Staging, dimension theo khoá nghiệp vụ (+ dòng “Không xác định”), fact theo lô ngày |
+| `src/report.py` | Đối chiếu số dòng và báo cáo chất lượng markdown |
+| `src/dashboard/queries.py` | Báo cáo Q1–Q5 (trung tâm×tháng · kỹ thuật viên · xu hướng · điểm thấp · tỉ lệ phản hồi) |
+| `src/dashboard/charts.py`, `app.py` | 2 biểu đồ và dashboard Streamlit (đang tải · rỗng · lỗi) |
+| `db/star_schema.sql` | DDL 1 fact + 3 dimension + `reject_rows` + `etl_run` |
+| `docs/` | Nhật ký thay đổi thiết kế, sơ đồ, yêu cầu dữ liệu, ảnh minh chứng, khai báo AI |
+| `tests/` | 17 unit test cho lớp nghiệp vụ |
 
-## 5. Tài liệu
+## 5. Kiểm thử
+`python -m pytest -q` chạy 17 test, gồm: luồng đúng (3 định dạng ngày → cùng một ngày; CSAT tính đúng), giá trị biên
+(điểm 1/5 hợp lệ – 0/6 bị loại; nhận xét 500/501 ký tự; mẫu nhỏ 9 so với 10 phản hồi), dữ liệu sai (ngày không đọc được,
+trùng mã phiếu, phản hồi cho phiếu chưa đóng, kỳ không có phản hồi).
 
-- Báo cáo Bài tập 1 (SRS, use case, kiến trúc, mô hình dữ liệu, wireframe)
-- `docs/thay-doi-thiet-ke.md`: quyết định điều chỉnh thiết kế sau phản hồi BT1
-
-## 6. Trạng thái hiện tại (buổi 8)
-
-- [x] Cấu trúc `src/` gồm extract, transform, quality, load theo sơ đồ data flow
-- [x] Đọc 2 file CSV, in số dòng, số cột, tỉ lệ ô trống từng cột
-- [x] Hàm chuẩn hóa ngày (8 định dạng cấu hình được); dòng không quy đổi được vào bảng `reject_rows` kèm lý do
-- [x] Kiểm tra quy tắc chất lượng: điểm 1–5, nhận xét ≤ 500 ký tự, phiếu đã đóng, trả lời sau ngày đóng, mỗi phiếu một phản hồi
-- [x] Nạp staging và kho dữ liệu (`fact_survey` + 3 dimension) theo `db/star_schema.sql`; chạy lại nhiều lần cho cùng kết quả
-- [x] 7 unit test đạt (dữ liệu nhỏ tự tạo trong test)
-- [ ] Chạy trên 2 file CSV thật và chụp ảnh kết quả lưu vào `docs/`
-- [ ] Đối chiếu số liệu chạy thật với Chương 4 (6.350 phiếu đã đóng, 2.600 phản hồi, tỉ lệ phản hồi 40,9%)
-- [ ] Kiểm tra tên cột và định dạng ngày của file thật; sửa `config/config.yaml` nếu khác
-- [ ] Tên trung tâm đang là tên tạm "Trung tâm n" vì dữ liệu nguồn chưa có tên
-- [ ] Chưa làm: truy vấn báo cáo CSAT (Q1–Q5), bảng `customer` và `survey_invitation` (BT2)
-- Ghi chú: dùng SQLite cho staging và kho dữ liệu ở giai đoạn này.
+## 6. Điều chỉnh thiết kế và phạm vi đã cắt trong Sprint 2
+- **Đối chiếu staging ↔ fact:** `stg_ticket = fact_survey + phiếu bị loại + phiếu chưa đóng`. Fact có grain là phiếu Đã đóng nên ít dòng hơn staging.
+- **Quy tắc “trả lời trước ngày đóng” so theo NGÀY:** nguồn có định dạng chỉ có ngày (`dd/mm/yyyy`); trả lời cùng ngày đóng là hợp lệ.
+- **Phiếu thiếu khoá dimension** vào dòng “Không xác định” (key = −1) thay vì bị JOIN loại mất.
+- **Đã cắt/hoãn (ghi nhận theo CLO5):** bảng `customer`, `survey_invitation`, xuất Excel (FR9), nhắc lần 2 (FR8), số điện thoại trong danh sách điểm thấp
+  (chưa có `customers.csv`), phân tích cảm xúc (WON'T). Lý do: ưu tiên luồng end-to-end, test và README.
+- Hạn chế đã biết: dòng bị xoá khỏi CSV nguồn không bị xoá khỏi fact ở lần nạp sau (chỉ upsert).
