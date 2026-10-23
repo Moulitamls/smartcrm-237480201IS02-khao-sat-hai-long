@@ -58,13 +58,16 @@ def q4_low_scores(conn, f, low_max=2):
     w, p = _where(f, "dr.full_date")
     cond = f"f.score <= {int(low_max)}"
     w = (w + " AND " if w else " WHERE ") + cond
+    
     return pd.read_sql_query(
-        "SELECT f.ticket_id, c.center_name, f.score, s.comment, dr.full_date AS responded_date "
-        "FROM fact_survey f JOIN dim_center c ON c.center_key=f.center_key "
-        "JOIN dim_date dr ON dr.date_key=f.responded_date_key "
-        f"LEFT JOIN stg_survey_response s ON s.response_id=f.response_id{w} "
-        "ORDER BY dr.full_date DESC, f.ticket_id", conn, params=p)
-
+        """SELECT f.ticket_id, c.center_name, f.score, 
+           COALESCE(s.comment, '(không có nhận xét)') AS comment, 
+           dr.full_date AS responded_date 
+           FROM fact_survey f 
+           JOIN dim_center c ON c.center_key=f.center_key 
+           JOIN dim_date dr ON dr.date_key=f.responded_date_key 
+           LEFT JOIN stg_survey_response s ON s.response_id=f.response_id""" + w + 
+        " ORDER BY dr.full_date DESC, f.ticket_id", conn, params=p)
 
 def q5_response_rate_center(conn, f, csat_min=4):
     w, p = _where(f)
