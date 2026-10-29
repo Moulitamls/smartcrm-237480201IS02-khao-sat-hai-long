@@ -15,10 +15,10 @@ def reconcile(stg_ticket, fact_rows, rejected_tickets, open_tickets, stg_survey,
     }
 
 
-def write_quality_report(summary, reports_dir):
+def write_quality_report(summary, reports_dir, prefix="chatluong"):
     Path(reports_dir).mkdir(parents=True, exist_ok=True)
     today = datetime.now().strftime("%Y-%m-%d")
-    path = Path(reports_dir) / f"chatluong-{today}.md"
+    path = Path(reports_dir) / f"{prefix}-{today}.md"
     rc = summary["reconcile"]
     L = [f"# Báo cáo chất lượng dữ liệu — {summary['finished_at']}", "",
          "## 1. Nguồn", "", "| Nguồn | Số dòng | Số cột |", "|---|---|---|"]
