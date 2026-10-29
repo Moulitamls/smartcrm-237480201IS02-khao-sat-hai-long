@@ -46,7 +46,9 @@ try:
         lo, hi = base["range"]
         
         st.sidebar.header("Bộ lọc")
-        d1 = st.sidebar.date_input("Từ ngày (ngày đóng phiếu)", pd.to_datetime(lo))
+        scope = st.sidebar.radio("Phạm vi thời gian", ["12 tháng gần nhất", "Toàn kỳ"])   # FR6: mặc định 12 tháng
+        start = q.months_back(hi) if scope == "12 tháng gần nhất" else lo
+        d1 = st.sidebar.date_input("Từ ngày (ngày đóng phiếu)", pd.to_datetime(max(start, lo)))
         d2 = st.sidebar.date_input("Đến ngày", pd.to_datetime(hi))
         names = st.sidebar.multiselect("Trung tâm", base["centers"]["center_name"].tolist())
         keys = tuple(base["centers"].loc[base["centers"]["center_name"].isin(names), "center_key"])
@@ -60,12 +62,17 @@ except Exception as e:                       # TRẠNG THÁI LỖI
         st.rerun()
     st.stop()
 
-# Hiển thị 3 thẻ chỉ số (theo đúng Báo cáo Mục 3.3)
+# Bốn thẻ chỉ số (theo wireframe Màn hình 2) — mỗi khung có dòng ghi nguồn
 src, stamp, ov = CFG["dashboard"]["source_note"], data["stamp"], data["overall"]
-c1, c2, c3 = st.columns(3)
+n_resp = 0 if pd.isna(ov["n_response"]) else int(ov["n_response"])
+c1, c2, c3, c4 = st.columns(4)
 c1.metric("Điểm hài lòng TB", q.fmt_avg(ov["avg_score"]))
-c2.metric("Tỉ lệ CSAT", q.fmt_pct(ov["csat_rate"]))
-c3.metric("Tỉ lệ phản hồi", q.fmt_pct(ov["response_rate"]))
+c2.metric("Tỉ lệ CSAT (4–5 điểm)", q.fmt_pct(ov["csat_rate"]))
+c3.metric("Số phản hồi", f"{n_resp:,}".replace(",", "."))
+c4.metric("Tỉ lệ phản hồi", q.fmt_pct(ov["response_rate"]))
+st.caption(f"Nguồn thẻ chỉ số: bảng fact_survey (lọc theo ngày đóng phiếu) · điểm TB = AVG(score); "
+           f"CSAT = phản hồi ≥ {R['csat_min_score']} điểm / tổng phản hồi; tỉ lệ phản hồi = phản hồi / phiếu đã đóng · "
+           f"Dữ liệu cập nhật lúc {stamp}")
 
 # Hiển thị biểu đồ hoặc thông báo rỗng
 if data["trend"].empty:                      # TRẠNG THÁI RỖNG
@@ -83,8 +90,10 @@ else:
     
     st.subheader("Phản hồi điểm thấp (≤ 2)")
     if len(data["low"]):
-        st.dataframe(data["low"], use_container_width=True)
+        st.dataframe(data["low"], width="stretch")
     else:
         st.info("Không có phản hồi điểm thấp trong bộ lọc này.")
+    st.caption(f"Nguồn bảng: fact_survey ⨝ dim_center ⨝ dim_date, nhận xét lấy từ stg_survey_response "
+               f"(điểm ≤ {R['low_score_max']}, lọc theo ngày trả lời) · Dữ liệu cập nhật lúc {stamp}")
 
-st.caption(f"{src} · Dữ liệu cập nhật lúc {stamp}")
+st.caption(f"{src} · Dữ liệu cập nhật lúc {stamp}")   # nguồn chung của toàn trang
