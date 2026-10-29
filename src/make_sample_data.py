@@ -1,6 +1,7 @@
-"""Sinh dữ liệu MẪU (seed cố định) khi chưa có CSV thật: python -m scripts.make_sample_data
+"""Sinh dữ liệu MẪU (seed cố định) khi chưa có CSV thật: python -m src.make_sample_data
 Quy mô theo Chương 4: 7.800 phiếu, 6.350 phiếu Đã đóng, ~2.600 phản hồi; có chủ ý chèn dòng lỗi
-để kiểm tra bảng reject_rows. KHÔNG dùng để thay thế lần chạy trên CSV thật khi nộp bài."""
+để kiểm tra bảng reject_rows. KHÔNG dùng để thay thế lần chạy trên CSV thật khi nộp bài.
+Ghi ra data/raw/demo_tickets.csv và demo_survey.csv (KHÔNG ghi đè CSV thật); chạy bằng src/config.demo.yaml."""
 import random
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -64,8 +65,7 @@ open_ticket = tickets[tickets.status != "DA_DONG"].ticket_id.iloc[0]
 survey = pd.concat([survey, pd.DataFrame([{"response_id": "X00001", "ticket_id": open_ticket, "score": "5",
                                            "comment": "", "responded_at": "2026-08-01"}])], ignore_index=True)
 
-tickets.to_csv(OUT / "tickets_history.csv", index=False, encoding="utf-8")
-survey.to_csv(OUT / "survey_responses.csv", index=False, encoding="utf-8")
+tickets.to_csv(OUT / "demo_tickets.csv", index=False, encoding="utf-8")
+survey.to_csv(OUT / "demo_survey.csv", index=False, encoding="utf-8")
 print(f"Đã sinh {len(tickets)} phiếu và {len(survey)} phản hồi (DỮ LIỆU MẪU) vào {OUT}/")
-
 
