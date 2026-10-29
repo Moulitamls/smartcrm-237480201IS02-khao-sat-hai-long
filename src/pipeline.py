@@ -1,7 +1,8 @@
 """Điều phối: extract → transform → quality → load → report. Chạy bằng một lệnh:
-   python -m src.pipeline --config config/config.yaml
+   python -m src.pipeline --config src/config.yaml
 """
 import argparse
+import os
 from datetime import datetime
 from pathlib import Path
 import pandas as pd
@@ -68,7 +69,7 @@ def run_from_config(cfg):
     summary = {"started_at": started, "finished_at": finished, "profiles": profiles, "reconcile": rc,
                "reject_counts": rejects.groupby(["source_table", "reason"]).size().to_dict() if len(rejects) else {},
                "batches": batches}
-    summary["report_path"] = write_quality_report(summary, p["reports_dir"])
+    summary["report_path"] = write_quality_report(summary, p["reports_dir"], p.get("report_prefix", "chatluong"))
     print(f"[load] {len(batches)} lô ngày; fact_survey = {n_fact} dòng; phản hồi trong fact = {in_fact}")
     print(f"[reconcile] stg_ticket {rc['stg_ticket']} = fact {n_fact} + loại {rc['rejected_tickets']} "
           f"+ chưa đóng {rc['open_tickets']}  -> {'ĐẠT' if rc['ticket_check'] else 'LỆCH'}")
@@ -82,7 +83,7 @@ def run(config_path):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--config", default="config/config.yaml")
+    ap.add_argument("--config", default=os.environ.get("CSAT_CONFIG", "src/config.yaml"))
     run(ap.parse_args().config)
 
 
