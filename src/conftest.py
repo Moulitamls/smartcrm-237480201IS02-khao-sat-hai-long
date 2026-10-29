@@ -1,4 +1,5 @@
 import sqlite3
+from pathlib import Path
 import pandas as pd
 import pytest
 import yaml
@@ -7,7 +8,10 @@ from src.pipeline import run_from_config
 
 @pytest.fixture
 def cfg():
-    return yaml.safe_load(open("src/config.yaml", encoding="utf-8"))
+    here = Path(__file__).resolve().parent            # test chạy được từ bất kỳ thư mục nào
+    c = yaml.safe_load(open(here / "config.yaml", encoding="utf-8"))
+    c["paths"]["schema"] = str(here / "star_schema.sql")
+    return c
 
 
 def write_csvs(tmp_path, tickets, survey):
@@ -32,3 +36,4 @@ def T(tid, status="DA_DONG", closed="2026-03-10 09:00:00", center="1", tech="1")
 
 def S(rid, tid, score="4", comment="", at="2026-03-11 10:00:00"):
     return {"response_id": rid, "ticket_id": tid, "score": score, "comment": comment, "responded_at": at}
+
