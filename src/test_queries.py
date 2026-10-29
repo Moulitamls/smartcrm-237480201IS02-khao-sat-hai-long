@@ -32,3 +32,10 @@ def test_phan_hoi_diem_thap_kem_nhan_xet(cfg, tmp_path):
     _, c = run_pipeline(cfg, tmp_path, [T("T1"), T("T2")], sv)
     low = q.q4_low_scores(c, q.Filters())
     assert low["ticket_id"].tolist() == ["T1"] and low["comment"].iloc[0] == "Sửa lâu quá"
+
+
+def test_khoang_12_thang_gan_nhat_bat_dau_tu_dau_thang():              # biên
+    assert q.months_back("2026-09-15") == "2025-10-01"                   # tháng 09/2026 là tháng thứ 12
+    assert q.months_back("2026-01-01") == "2025-02-01"                   # qua ranh giới năm
+    assert q.months_back("2026-09-30", months=1) == "2026-09-01"
+
