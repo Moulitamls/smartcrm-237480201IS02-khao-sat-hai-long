@@ -85,9 +85,15 @@ def data_timestamp(conn):
     return row[0] if row else "chưa có lần nạp nào"
 
 
+def months_back(hi, months=12):
+    """Ngày đầu tháng của khoảng `months` tháng gần nhất, tính đến tháng của ngày hi (yyyy-mm-dd)."""
+    return str((pd.Timestamp(hi).to_period("M") - (months - 1)).start_time.date())
+
+
 def fmt_avg(v, digits=2):
     return "Chưa có dữ liệu" if v is None or pd.isna(v) else f"{v:.{digits}f}"
 
 
 def fmt_pct(v):
     return "Chưa có dữ liệu" if v is None or pd.isna(v) else f"{v * 100:.1f}%"
+
