@@ -1,6 +1,12 @@
+# môi trường và bộ nhớ đệm
 .venv/
 __pycache__/
 .pytest_cache/
 *.pyc
+.env
+
+# dữ liệu sinh ra khi chạy (CSV thật trong data/raw/ được commit)
 data/csat.db
-data/raw/*.csv
+data/csat.db.bak
+data/demo.db
+data/raw/demo_*.csv
