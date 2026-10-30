@@ -1,6 +1,6 @@
 # Smart CRM Mekong Mobile – Khảo sát hài lòng CSAT (L8, Track DA)
 
-Sinh viên: MOONLASING Moulita · MSSV 237480201IS02 · GVHD: ThS. Nguyễn Minh Tân
+Sinh viên: MOONLASING Moulita · MSSV 237480201IS02 · GVHD: ThS. Nguyễn Minh Tân - Bài tập 2 - tag 'v0.2'
 Repo: https://github.com/Moulitamls/smartcrm-237480201IS02-khao-sat-hai-long 
 
 ## 1. Giới thiệu
