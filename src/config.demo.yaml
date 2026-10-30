@@ -1,0 +1,37 @@
+# DỮ LIỆU MẪU có lỗi chủ ý (TD-20): chạy sau `python -m src.make_sample_data`.
+# Ghi ra data/demo.db và reports/chatluong-demo-<ngày>.md, KHÔNG ghi đè dữ liệu thật.
+paths:
+  tickets_csv: data/raw/demo_tickets.csv
+  survey_csv: data/raw/demo_survey.csv
+  db: data/demo.db
+  schema: src/star_schema.sql
+  reports_dir: reports
+  report_prefix: chatluong-demo
+
+
+columns:
+  tickets: [ticket_id, center_id, technician_id, status, closed_at]   # created_at nếu có sẽ được chuẩn hoá
+  survey: [response_id, ticket_id, score, comment, responded_at]
+closed_status: DA_DONG
+
+# Dạng có dấu / và - luôn hiểu là ngày/tháng/năm
+date_formats:
+  - "%Y-%m-%d %H:%M:%S"
+  - "%Y-%m-%d %H:%M"
+  - "%Y-%m-%d"
+  - "%Y-%m-%dT%H:%M:%S"
+  - "%d/%m/%Y %H:%M:%S"
+  - "%d/%m/%Y %H:%M"
+  - "%d/%m/%Y"
+  - "%d-%m-%Y"
+rules:
+  min_score: 1
+  max_score: 5
+  max_comment_len: 500
+  csat_min_score: 4        # tỉ lệ CSAT = số phản hồi chấm >= 4 / tổng phản hồi
+  low_score_max: 2         # phản hồi điểm thấp: score <= 2
+  small_sample_threshold: 10
+  max_error_rate: 0.05     # ngưỡng tỉ lệ lỗi cho phép của mỗi phép kiểm CL1–CL8 (5%)
+dashboard:
+  cache_ttl_seconds: 60
+  source_note: "Nguồn: tickets_history.csv, survey_responses.csv (qua pipeline ETL)"
