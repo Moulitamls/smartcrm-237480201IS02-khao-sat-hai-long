@@ -1,4 +1,4 @@
-# Báo cáo chất lượng dữ liệu — 2026-10-30 13:51:59
+# Báo cáo chất lượng dữ liệu — 2026-10-30 21:25:07
 
 ## 1. Nguồn
 
