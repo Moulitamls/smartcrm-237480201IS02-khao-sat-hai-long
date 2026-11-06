@@ -40,8 +40,7 @@ Cấu trúc thư mục phẳng trong `src/` theo yêu cầu của giảng viên 
 |---|---|
 | `src/extract/reader.py` | Đọc CSV, kiểm tra cột bắt buộc, thống kê ô trống |
 | `src/transform/normalize.py` | Chuẩn hoá ngày (8 định dạng), ép điểm về số nguyên |
-| `src/quality/rules.py`, `rejects.py` | Quy tắc chất lượng, bảng `reject_rows` (mỗi dòng một lý do) |
-| `src/load/sqlite_loader.py` | Staging, dimension theo khoá nghiệp vụ (+ dòng "Không xác định"), fact theo lô ngày (upsert) |
+| `src/quality/rules.py`, `rejects.py` | 10 quy tắc chất lượng, mỗi quy tắc một hàm `check_*` (4 cho phiếu, 6 cho phản hồi) và hai hàm điều phối `check_tickets`, `check_surveys`; bảng `reject_rows` (mỗi dòng một lý do) || `src/load/sqlite_loader.py` | Staging, dimension theo khoá nghiệp vụ (+ dòng "Không xác định"), fact theo lô ngày (upsert) |
 | `src/report.py` | Đối chiếu staging ↔ fact và báo cáo chất lượng markdown |
 | `src/pipeline.py` | Điều phối cả luồng bằng một lệnh |
 | `src/queries.py` | Báo cáo Q1–Q5 (trung tâm×tháng · kỹ thuật viên · xu hướng · điểm thấp · tỉ lệ phản hồi) |

@@ -193,4 +193,11 @@ Bảng tóm tắt:
 - Lý do: README cũ trỏ đường dẫn không tồn tại (`config/`, `db/`, `src/dashboard/`, `scripts/`) và link repo bị đứt chữ; CSV bị `.gitignore` chặn nên máy sạch không có dữ liệu.
 - Ảnh hưởng: Commit CSV vào `data/raw/`; `requirements.txt` ghim `==`; `.env.example` chỉ chứa biến thật sự dùng (`CSAT_CONFIG`); thêm `__init__.py` cho 4 gói con; `conftest.py` dùng đường dẫn tuyệt đối nên test chạy được từ mọi thư mục.
 
-*Ghi chú: các mục tiếp theo (ở BT3) nối tiếp vào cuối file này với mã TD-22 trở đi.*
+### TD-22 Tách quy tắc chất lượng thành hàm riêng
+
+- Phản hồi của GV: Đề BT2 (D2) yêu cầu ít nhất 5 hàm kiểm chất lượng.
+- Quyết định: SỬA
+- Lý do: `rules.py` cũ chỉ có 2 hàm lớn (`check_tickets`, `check_surveys`) chứa 10 quy tắc; khó đếm, khó đọc và khó kiểm thử từng quy tắc.
+- Ảnh hưởng: `rules.py` có 10 hàm `check_*` (mỗi quy tắc một hàm trả mặt nạ dòng vi phạm); `check_tickets` và `check_surveys` giữ nguyên tên, chữ ký và thứ tự quy tắc nên `pipeline.py` không đổi. Hành vi không đổi: 18 test vẫn PASS, `fact_survey` = 6350, dữ liệu mẫu vẫn ra 8 lý do loại (12 phiếu + 18 phản hồi).
+
+*Ghi chú: các mục tiếp theo (ở BT3) nối tiếp vào cuối file này với mã TD-23 trở đi.*
