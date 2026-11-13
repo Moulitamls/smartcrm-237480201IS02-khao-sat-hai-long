@@ -1,0 +1,33 @@
+# Cấu hình khi chạy trong Docker (docker-compose.yml đặt CSAT_CONFIG trỏ tới file này).
+# Chỉ khác src/config.yaml ở hai đường dẫn ghi: kho SQLite và báo cáo nằm trong volume /var/lib/csat.
+paths:
+  tickets_csv: data/raw/tickets_history.csv
+  survey_csv: data/raw/survey_responses.csv
+  db: /var/lib/csat/csat.db
+  schema: src/star_schema.sql
+  reports_dir: /var/lib/csat/reports
+
+columns:
+  tickets: [ticket_id, center_id, technician_id, status, closed_at]
+  survey: [response_id, ticket_id, score, comment, responded_at]
+closed_status: DA_DONG
+
+date_formats:
+  - "%Y-%m-%d %H:%M:%S"
+  - "%Y-%m-%d %H:%M"
+  - "%Y-%m-%d"
+  - "%Y-%m-%dT%H:%M:%S"
+  - "%d/%m/%Y %H:%M:%S"
+  - "%d/%m/%Y %H:%M"
+  - "%d/%m/%Y"
+  - "%d-%m-%Y"
+rules:
+  min_score: 1
+  max_score: 5
+  max_comment_len: 500
+  csat_min_score: 4
+  low_score_max: 2
+  small_sample_threshold: 10
+dashboard:
+  cache_ttl_seconds: 60
+  source_note: "Nguồn: tickets_history.csv, survey_responses.csv (qua pipeline ETL)"

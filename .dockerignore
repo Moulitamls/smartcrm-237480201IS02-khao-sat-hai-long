@@ -1,0 +1,16 @@
+.git
+.gitignore
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+data/csat.db
+data/csat.db.bak
+data/demo.db
+data/raw/demo_*.csv
+reports/
+docs/
+notebooks/
+dashboard/
+*.log

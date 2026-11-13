@@ -1,0 +1,39 @@
+# Hai lệnh dựng hệ thống:  cp .env.example .env  &&  docker compose up -d --build
+# pipeline: chạy ETL MỘT lần rồi thoát (exit 0). dashboard: chỉ khởi động khi pipeline đã chạy xong.
+x-csat-env: &csat-env
+  env_file: .env
+  environment:
+    CSAT_CONFIG: src/config.docker.yaml     # ghi đè giá trị trong .env: kho SQLite nằm trong volume
+  volumes:
+    - csatdata:/var/lib/csat
+
+services:
+  pipeline:
+    <<: *csat-env
+    build: .
+    image: smartcrm-csat:1.0
+    command: ["python", "-m", "src.pipeline"]
+    restart: "no"
+
+  dashboard:
+    <<: *csat-env
+    build: .
+    image: smartcrm-csat:1.0
+    command: ["python", "-m", "streamlit", "run", "src/app.py",
+              "--server.port=8501", "--server.address=0.0.0.0",
+              "--server.headless=true", "--browser.gatherUsageStats=false"]
+    ports:
+      - "127.0.0.1:${APP_PORT:-8501}:8501"   # chỉ mở trên máy này; cổng bị chiếm thì đổi APP_PORT trong .env
+    depends_on:
+      pipeline:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+volumes:
+  csatdata: {}
