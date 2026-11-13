@@ -1,6 +1,6 @@
 # Nhật ký lỗi (bug log)
 
-Mỗi lỗi theo bốn bước gỡ lỗi: tái lập → khoanh vùng → sửa nguyên nhân → xác nhận. Mức độ ghi ở tiêu đề. Link commit: /commit/<mã>.
+Mỗi lỗi theo bốn bước gỡ lỗi: tái lập → khoanh vùng → sửa nguyên nhân → xác nhận. Mức độ ghi ở tiêu đề. Link commit: [/commit/<mã>](https://github.com/Moulitamls/smartcrm-237480201IS02-khao-sat-hai-long/commit/).
 
 ## BUG-01 — [Major] Test không import được `tests.conftest`
 
