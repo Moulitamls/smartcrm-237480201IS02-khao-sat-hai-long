@@ -46,7 +46,7 @@ The two source files are committed in `data/raw/` and baked into the image — n
 | 5 | `docker compose run --rm pipeline python -m pytest -q src` | `19 passed` |
 | 6 | `docker compose run --rm pipeline` (second run) | `fact_survey = 6350 dòng` again — no duplicated rows |
 
-Tested with: Docker `<<ĐIỀN: bản Docker + hệ điều hành của bạn>>` (white-machine test, tag v1.0, date `<<ĐIỀN>>`).
+Tested with: Docker 28.1.1 (Docker Desktop, Windows) — white-machine test on 13/11/2026: fresh clone of `main` (commit `ea00824`) into an empty folder, then `cp .env.example .env` and `docker compose up -d --build`; all six checks above passed.
 
 ## 6. Troubleshooting
 
@@ -57,3 +57,18 @@ Tested with: Docker `<<ĐIỀN: bản Docker + hệ điều hành của bạn>>`
 | Old data or partial run | `docker compose down -v` then `docker compose up -d --build` |
 | Build cannot download packages | Check the internet/proxy setting of Docker, then rerun step 3 |
 | No Docker available | Fallback without Docker: Python 3.11+, see README section 3 (venv, `pip install -r requirements.txt`, `python -m src.pipeline`, `python -m streamlit run src/app.py`) |
+
+## 7. Optional: public deployment (Render)
+
+The same Dockerfile is deployed as a Render Web Service (Free plan, Docker runtime).
+
+1. Create a Render account and connect the GitHub repository.
+2. New → Web Service → select the repository, branch `main`, runtime Docker, region Singapore, instance type Free.
+3. Docker Command: `sh -c "python -m src.pipeline && python -m streamlit run src/app.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true --browser.gatherUsageStats=false"`
+4. Environment variable: `CSAT_CONFIG=src/config.docker.yaml`. No secrets are used.
+5. Health check path: `/_stcore/health`.
+6. Open the Render URL and verify the 4 metric cards and 2 charts (same values as section 5, check 4).
+
+Notes: the Free plan sleeps after about 15 minutes without traffic, so the first request after sleep can take about a minute. The data is rebuilt from the CSV files on every start. The dashboard has no login, so anyone with the URL can view it (the data is pseudonymised).
+
+Live URL: <<ĐIỀN: link Render, ví dụ https://smartcrm-csat.onrender.com>>
