@@ -1,0 +1,9 @@
+('stg_survey_response', 'nhan_xet_qua_dai', 3)
+('stg_survey_response', 'phieu_chua_dong', 3)
+('stg_survey_response', 'score_ngoai_1_5', 3)
+('stg_survey_response', 'tra_loi_truoc_ngay_dong', 4)
+('stg_survey_response', 'trung_phan_hoi', 5)
+('stg_ticket', 'da_dong_thieu_closed_at', 3)
+('stg_ticket', 'ngay_dong_khong_doc_duoc', 4)
+('stg_ticket', 'ticket_id_trung', 5)
+tổng: 30

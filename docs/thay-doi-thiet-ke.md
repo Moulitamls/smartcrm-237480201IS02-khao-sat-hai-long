@@ -200,4 +200,52 @@ Bảng tóm tắt:
 - Lý do: `rules.py` cũ chỉ có 2 hàm lớn (`check_tickets`, `check_surveys`) chứa 10 quy tắc; khó đếm, khó đọc và khó kiểm thử từng quy tắc.
 - Ảnh hưởng: `rules.py` có 10 hàm `check_*` (mỗi quy tắc một hàm trả mặt nạ dòng vi phạm); `check_tickets` và `check_surveys` giữ nguyên tên, chữ ký và thứ tự quy tắc nên `pipeline.py` không đổi. Hành vi không đổi: 18 test vẫn PASS, `fact_survey` = 6350, dữ liệu mẫu vẫn ra 8 lý do loại (12 phiếu + 18 phản hồi).
 
-*Ghi chú: các mục tiếp theo (ở BT3) nối tiếp vào cuối file này với mã TD-23 trở đi.*
+---
+
+## Sau Bài tập 3: đóng gói, triển khai, bảo mật (buổi 15–16)
+
+Bảng tóm tắt:
+
+| Mã | Nội dung | Quyết định |
+|---|---|---|
+| TD-23 | Đóng gói mức 3: `Dockerfile`, `docker-compose.yml` (pipeline chạy một lần + dashboard có healthcheck), `.dockerignore`, `.gitattributes`, đủ `__init__.py` | THÊM |
+| TD-24 | `src/config.docker.yaml` (kho và báo cáo trong volume); `app.py` đọc biến `CSAT_CONFIG` | SỬA |
+| TD-25 | Dashboard không hiện nguyên thông báo ngoại lệ khi lỗi (BUG-07); thêm test thứ 19 | SỬA |
+| TD-26 | Cổng dashboard chỉ gắn vào `127.0.0.1` | SỬA |
+| TD-27 | Tài liệu BT3 viết tiếng Anh theo đề: `deployment-guide.md`, `pipeline-doc.md`, `data-dictionary.md` (viết lại từ DB thật) | THÊM |
+
+### TD-23 Đóng gói mức 3 bằng Docker
+
+- Phản hồi của GV: Giảng viên clone theo tag v1.0 và chạy bằng không quá 2 lệnh từ thư mục trống (C1).
+- Quyết định: THÊM
+- Lý do: README mức 2 (BT2) vẫn lệch phiên bản Python giữa các máy. Pipeline là tác vụ chạy một lần nên tách thành dịch vụ `pipeline` thoát với mã 0; `dashboard` dùng `depends_on: service_completed_successfully` để chỉ khởi động khi kho đã có dữ liệu, nên người chấm không phải gõ lệnh thứ ba. Dữ liệu CSV thật được chép vào image (đã commit ở TD-21).
+- Ảnh hưởng: thêm các tệp đóng gói ở thư mục gốc; README mục 2A; Deployment Guide. Cách chạy không dùng Docker (README mục 3) giữ làm phương án dự phòng.
+
+### TD-24 Cấu hình riêng cho Docker
+
+- Phản hồi của GV: Không có (tự phát hiện khi đóng gói).
+- Quyết định: SỬA
+- Lý do: pipeline ghi `data/csat.db` trong thư mục mã nguồn; trong container cần ghi vào volume để dashboard đọc được cùng một kho. Dùng thêm `src/config.docker.yaml` chỉ khác hai đường dẫn ghi (`db`, `reports_dir`). `app.py` trước đây luôn đọc `src/config.yaml`; nay đọc `CSAT_CONFIG` (mặc định giữ nguyên `src/config.yaml`).
+- Ảnh hưởng: `src/app.py`, `src/config.docker.yaml`, `.env.example`. Hai file cấu hình phải được cập nhật cùng nhau khi đổi quy tắc.
+
+### TD-25 Thông báo lỗi dashboard không lộ cấu trúc
+
+- Phản hồi của GV: Không có (phát hiện khi tự điền checklist bảo mật mục 5).
+- Quyết định: SỬA
+- Lý do: dashboard in cả câu SQL và tên bảng (BUG-07, OWASP A10/A02). Thông báo cho người dùng giữ nguyên ba trạng thái và nút "Thử lại" nhưng nội dung chung; chi tiết ghi vào log máy chủ.
+- Ảnh hưởng: `src/app.py`, `src/test_dashboard_error.py`; README mục 5 và 6 (19 test).
+
+### TD-26 Chỉ mở cổng dashboard trên máy cục bộ
+
+- Phản hồi của GV: Không có.
+- Quyết định: SỬA
+- Lý do: dashboard không có đăng nhập (SSO ngoài phạm vi, TD-07) và hiển thị nhận xét khách hàng nên không nên mở ra mạng. Ánh xạ `127.0.0.1:${APP_PORT:-8501}:8501`.
+- Ảnh hưởng: nếu triển khai trên máy chủ từ xa phải đổi ánh xạ cổng và thêm xác thực; ghi ở Deployment Guide mục 3.
+
+### TD-27 Tài liệu kỹ thuật tiếng Anh
+
+- Phản hồi của GV: Đề BT3 yêu cầu Deployment Guide và tài liệu kỹ thuật theo track bằng tiếng Anh.
+- Quyết định: THÊM
+- Lý do: `docs/data-dictionary.md` cũ (TD-17) viết tiếng Việt và không có trong gói nộp; bản mới sinh từ `PRAGMA table_info` của kho thật và có kiểm tra đủ mọi cột, thêm phân loại dữ liệu và cách xử lý bảo mật (D4).
+- Ảnh hưởng: ba tệp trong `docs/`; số liệu trong tài liệu lấy từ lần chạy ngày 11/11/2026.
+

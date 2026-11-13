@@ -1,4 +1,4 @@
-# Smart CRM Mekong Mobile – Khảo sát hài lòng CSAT (L8, Track DA)
+# Smart CRM Mekong Mobile – Khảo sát hài lòng CSAT (L8, Track DA) — v1.0
 
 Sinh viên: MOONLASING Moulita · MSSV 237480201IS02 · GVHD: ThS. Nguyễn Minh Tân
 Repo: https://github.com/Moulitamls/smartcrm-237480201IS02-khao-sat-hai-long 
@@ -15,9 +15,22 @@ Cấu trúc thư mục phẳng trong `src/` theo yêu cầu của giảng viên 
 - Thư viện ghim phiên bản trong `requirements.txt`. Không cần `.env` thật hay secret (xem `.env.example`).
 - Mọi lệnh bên dưới chạy ở **thư mục gốc repo**. Ví dụ dùng PowerShell trên Windows.
 
-## 3. Các bước dựng hệ thống (mỗi bước một lệnh)
+## 2A. Chạy bằng Docker (khuyến nghị — đúng hai lệnh)
 
-1. `git clone --branch v0.2 https://github.com/Moulitamls/smartcrm-237480201IS02-khao-sat-hai-long.git`
+Chỉ cần Docker và Git (không cần Python). Chi tiết, kết quả mong đợi và xử lý sự cố: `docs/deployment-guide.md`.
+
+```
+git clone --branch v1.0 https://github.com/Moulitamls/smartcrm-237480201IS02-khao-sat-hai-long.git
+cd smartcrm-237480201IS02-khao-sat-hai-long
+cp .env.example .env
+docker compose up -d --build
+```
+
+Hai lệnh dựng hệ thống là `cp .env.example .env` và `docker compose up -d --build`: dịch vụ `pipeline` nạp CSV vào kho rồi thoát, dịch vụ `dashboard` mở tại http://localhost:8501. Kiểm tra: `docker compose ps -a` (dashboard `healthy`), `curl -s http://localhost:8501/_stcore/health` (`ok`), `docker compose run --rm pipeline python -m pytest -q src` (`19 passed`).
+
+## 3. Các bước dựng hệ thống không dùng Docker (mỗi bước một lệnh)
+
+1. `git clone --branch v1.0 https://github.com/Moulitamls/smartcrm-237480201IS02-khao-sat-hai-long.git`
 2. `cd smartcrm-237480201IS02-khao-sat-hai-long`
 3. `python -m venv .venv`
 4. Kích hoạt môi trường. Windows: `.venv\Scripts\activate` · macOS/Linux: `source .venv/bin/activate`
@@ -27,7 +40,7 @@ Cấu trúc thư mục phẳng trong `src/` theo yêu cầu của giảng viên 
    Kết quả đúng: `[load] 734 lô ngày; fact_survey = 6350 dòng` và `[reconcile] ... -> ĐẠT`. Tạo `data/csat.db` và `reports/chatluong-<ngày>.md`.
 8. `python -m src.pipeline --config src/config.yaml` (chạy lần hai: `fact_survey` vẫn 6350, không nhân đôi)
 9. `python -m pytest -q src`
-   Kết quả đúng: `18 passed`.
+   Kết quả đúng: `19 passed`.
 10. `python -m streamlit run src/app.py`
     Mở http://localhost:8501. Dừng bằng Ctrl+C.
 11. `python -m src.export_charts` (ghi `docs/chart1_csat_trend.png`, `docs/chart2_technician.png`)
@@ -47,17 +60,18 @@ Cấu trúc thư mục phẳng trong `src/` theo yêu cầu của giảng viên 
 | `src/charts.py`, `src/app.py`, `src/export_charts.py` | 2 biểu đồ, dashboard (đang tải · rỗng · lỗi), xuất ảnh biểu đồ |
 | `src/config.yaml`, `src/config.demo.yaml` | Cấu hình dữ liệu thật và dữ liệu mẫu (đường dẫn, cột, định dạng ngày, ngưỡng quy tắc) |
 | `src/star_schema.sql` | DDL 1 fact + 3 dimension + `reject_rows` + `etl_run` |
-| `src/test_*.py`, `src/conftest.py` | 18 unit test cho lớp nghiệp vụ (không test giao diện) |
+| `src/test_*.py`, `src/conftest.py` | 19 test cho lớp nghiệp vụ và trạng thái lỗi của dashboard |
 | `data/raw/` | CSV nguồn (`tickets_history.csv`, `survey_responses.csv`) |
-| `docs/` | Từ điển cột (`data-dictionary.md`), thay đổi thiết kế, bug-log, khai báo AI, sơ đồ, ảnh minh chứng |
+| `Dockerfile`, `docker-compose.yml`, `.dockerignore`, `src/config.docker.yaml` | Đóng gói: dịch vụ `pipeline` (chạy một lần) và `dashboard`, volume `csatdata` |
+| `docs/` | BT3: `test-plan.md`, `test-report.md`, `bug-log.md`, `deployment-guide.md`, `checklist-bao-mat.md`, `pipeline-doc.md`, `data-dictionary.md`; cùng `thay-doi-thiet-ke.md`, `ai-disclosure.md`, sơ đồ, `evidence/` (log chạy thật), `screenshots/` |
 
 ## 5. Kiểm thử
 
-`python -m pytest -q src` chạy 18 test, không cần CSV thật (test tự dựng dữ liệu nhỏ):
+`python -m pytest -q src` chạy 19 test, không cần CSV thật (test tự dựng dữ liệu nhỏ):
 
 - Luồng đúng: 3 định dạng ngày ra cùng một ngày; CSAT và tỉ lệ phản hồi tính đúng; nạp lần hai không nhân đôi dòng; pipeline chạy trọn vẹn.
 - Giá trị biên: điểm 1/5 hợp lệ, 0/6 bị loại; nhận xét 500/501 ký tự; kỹ thuật viên 9 so với 10 phản hồi; khoảng 12 tháng bắt đầu từ đầu tháng.
-- Dữ liệu sai: ngày 31/02 và chuỗi rác; trùng mã phiếu; phản hồi cho phiếu chưa đóng; trả lời trước ngày đóng; hai phản hồi một phiếu; kỳ không có phản hồi không hiện 0 điểm.
+- Dữ liệu sai: ngày 31/02 và chuỗi rác; dashboard lỗi không lộ câu SQL (BUG-07); trùng mã phiếu; phản hồi cho phiếu chưa đóng; trả lời trước ngày đóng; hai phản hồi một phiếu; kỳ không có phản hồi không hiện 0 điểm.
 
 ## 6. Ba trạng thái của dashboard
 

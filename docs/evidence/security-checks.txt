@@ -1,0 +1,40 @@
+# Chạy ngày 2026-11-11, Linux, Python 3.12.3, thư mục gốc repo (bản đóng gói v1.0)
+
+$ grep -rniE "password|secret|api_key|token" src/ --include=*.py --include=*.yaml --include=*.sql
+(rỗng)
+
+$ grep -rniE "password|secret|api_key" .env.example Dockerfile docker-compose.yml
+(rỗng)
+
+$ ls .env
+ls: cannot access '.env': No such file or directory
+
+$ grep -rnE "execute\(f|executemany\(f|read_sql_query\(f" src --include=*.py   # SQL ghép chuỗi (loại test)
+src/queries.py:39:    return pd.read_sql_query(f"SELECT dc.year_month, c.center_name, {_metrics(csat_min)} {_JOINS}{w} "
+src/queries.py:45:    df = pd.read_sql_query(f"SELECT t.technician_name, {_metrics(csat_min)} {_JOINS}{w} "
+src/queries.py:53:    return pd.read_sql_query(f"SELECT dc.year_month, {_metrics(csat_min)} {_JOINS}{w} "
+src/queries.py:74:    return pd.read_sql_query(f"SELECT c.center_name, {_metrics(csat_min)} {_JOINS}{w} "
+src/queries.py:80:    return pd.read_sql_query(f"SELECT {_metrics(csat_min)} {_JOINS}{w}", conn, params=p).iloc[0]
+src/load/sqlite_loader.py:53:    conn.execute(f"INSERT OR IGNORE INTO {table} ({table.replace('dim_', '')}_key, {id_col}
+src/load/sqlite_loader.py:56:    conn.executemany(f"INSERT OR IGNORE INTO {table} ({id_col}, {name_col}) VALUES (?,?)", 
+src/load/sqlite_loader.py:112:    return conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+
+$ pip-audit -r requirements.txt
+No known vulnerabilities found
+
+$ cat requirements.txt
+pandas==3.0.2
+pyyaml==6.0.3
+matplotlib==3.10.8
+streamlit==1.66.1
+pytest==9.2.0
+
+$ python -m src.pipeline 2>&1 | grep -iE "password|token|0[0-9]{9}"
+(rỗng)
+
+$ grep -ciE "password|token|0[0-9]{9}" <log Streamlit chạy dashboard>
+0
+
+$ python -m pytest -q src/test_dashboard_error.py
+.                                                                        [100%]
+1 passed in 1.03s

@@ -22,3 +22,12 @@ Tôi xác nhận đã đọc, hiểu và chịu trách nhiệm về toàn bộ n
 - Họ tên: **MOONLASING Moulita**
 - MSSV: **237480201IS02**
 - Ngày: *09/10/2026**
+
+---
+
+# Phụ lục – Bảng khai báo sử dụng công cụ AI (Giai đoạn 3 – Bài tập 3)
+
+| Công cụ | Dùng vào việc gì | Áp dụng ở phần nào | Đã kiểm chứng thế nào |
+|---|---|---|---|
+| Claude (Anthropic) | Soạn bản nháp `Dockerfile`, `docker-compose.yml`, `.dockerignore`, `src/config.docker.yaml`; sửa `src/app.py` (đọc `CSAT_CONFIG`, thông báo lỗi chung) và viết `test_dashboard_error.py`; soạn Test Plan, Test Report, checklist bảo mật, Deployment Guide, Pipeline doc, Data dictionary, mục TD-23 đến TD-27; chạy thử pipeline, pytest, `pip-audit` và các lệnh `grep` trong môi trường của công cụ để lấy log và số liệu | TP1, TP2, TP3 (BUG-07), TP4, TP5, TP6 và README | Chạy lại toàn bộ lệnh trong tài liệu: `pytest` 19 passed, pipeline 6.350 dòng và ĐẠT, chạy lần hai không đổi, `pip-audit` không có lỗ hổng đã biết; test BUG-07 FAIL trên mã cũ và PASS sau sửa; từ điển cột kiểm đủ cột bằng script. `<<ĐIỀN: em đã tự chạy phép thử máy trắng bằng Docker trên máy mình ngày …, đối chiếu từng số liệu trong Guide với kết quả, và đọc/sửa từng tài liệu>>` |
+

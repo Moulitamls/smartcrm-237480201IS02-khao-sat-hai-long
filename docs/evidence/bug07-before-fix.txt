@@ -1,0 +1,3 @@
+2026-11-11 06:56:50.596 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+st.error hiển thị cho người dùng:
+  -> Không tải được dữ liệu: Execution failed on sql 'SELECT center_key, center_name FROM dim_center WHERE center_key>0 ORDER BY center_name': no such table: dim_center

@@ -1,0 +1,8 @@
+[extract] tickets_history: 7800 dòng, 15 cột
+          ô trống closed_at: 18.59%
+[extract] survey_responses: 2600 dòng, 5 cột
+          ô trống comment: 27.54%
+[quality] loại 0 dòng phiếu, 0 dòng phản hồi
+[load] 734 lô ngày; fact_survey = 6350 dòng; phản hồi trong fact = 2600
+[reconcile] stg_ticket 7800 = fact 6350 + loại 0 + chưa đóng 1450  -> ĐẠT
+[report] reports/chatluong-2026-11-11.md
