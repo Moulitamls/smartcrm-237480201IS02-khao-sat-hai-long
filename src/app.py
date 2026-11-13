@@ -1,5 +1,7 @@
 """Dashboard Streamlit: streamlit run src/app.py
 Ba trạng thái: đang tải (spinner) · rỗng (giải thích) · lỗi (thông báo + nút Thử lại)."""
+import logging
+import os
 import sys
 from pathlib import Path
 
@@ -15,8 +17,11 @@ from src import queries as q
 from src.charts import chart_trend, chart_technician, EMPTY_MESSAGE
 
 # Đường dẫn config và DB theo cấu trúc phẳng trong src/
-CFG = yaml.safe_load(open(Path(__file__).resolve().parents[1] / "src" / "config.yaml", encoding="utf-8"))
-DB = str(Path(__file__).resolve().parents[1] / CFG["paths"]["db"])
+ROOT = Path(__file__).resolve().parents[1]
+# CSAT_CONFIG chọn file cấu hình (Docker dùng src/config.docker.yaml); mặc định src/config.yaml
+CFG = yaml.safe_load(open(ROOT / os.environ.get("CSAT_CONFIG", "src/config.yaml"), encoding="utf-8"))
+DB = str(ROOT / CFG["paths"]["db"])        # đường dẫn tuyệt đối trong config thì giữ nguyên
+log = logging.getLogger("csat.dashboard")
 R = CFG["rules"]
 
 @st.cache_data(ttl=CFG["dashboard"]["cache_ttl_seconds"])
@@ -56,7 +61,9 @@ try:
         # Tải dữ liệu đã lọc
         data = load_all(str(d1), str(d2), keys)
 except Exception as e:                       # TRẠNG THÁI LỖI
-    st.error(f"Không tải được dữ liệu: {e}")
+    log.exception("Không tải được dữ liệu dashboard")   # chi tiết chỉ ghi vào log máy chủ
+    st.error("Không tải được dữ liệu. Hãy kiểm tra pipeline đã chạy xong (README mục 3, bước 7) rồi bấm Thử lại. "
+             "Chi tiết kỹ thuật đã được ghi vào nhật ký máy chủ.")
     if st.button("Thử lại"):
         st.cache_data.clear()
         st.rerun()
