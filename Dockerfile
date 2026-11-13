@@ -9,10 +9,10 @@ RUN pip install -r requirements.txt
 # 2. Mã nguồn (gồm cả test, để chạy pytest trong container) và CSV nguồn
 COPY src ./src
 COPY data/raw ./data/raw
+COPY start.sh ./start.sh
 
-# 3. Không chạy bằng root; /var/lib/csat là nơi ghi kho SQLite và báo cáo (gắn volume)
 RUN useradd -m appuser && mkdir -p /var/lib/csat && chown -R appuser /app /var/lib/csat
 USER appuser
 
 EXPOSE 8501
-CMD ["python", "-m", "src.pipeline"]
+CMD ["sh", "start.sh"]
