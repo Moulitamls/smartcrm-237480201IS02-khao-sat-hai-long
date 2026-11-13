@@ -5,8 +5,8 @@ Tham chiếu OWASP Top 10:2025: A01 Broken Access Control · A02 Security Miscon
 
 ## 1. Không có secret nào trong repo (A02) — ĐÃ LÀM
 Minh chứng: `grep -rniE "password|secret|api_key|token" src/` → rỗng; `grep` trên `.env.example`, `Dockerfile`, `docker-compose.yml` → rỗng; không có tệp `.env`; `.env` nằm trong `.gitignore` và `.dockerignore`. Dự án không dùng secret nào (xem `.env.example`).
-Lịch sử Git: `git log --all --oneline -- .env` → `<<ĐIỀN: kết quả khi chạy trên repo thật, phải rỗng>>`.
-Ảnh: `docs/screenshots/sec-1.png` `<<CHỤP>>`
+Lịch sử Git: `git log --all --oneline -- .env` → `(rỗng)` — chạy ngày 13/11/2026 trên repo thật.
+Ảnh: `docs/screenshots/sec-1.png`
 
 ## 2. Dữ liệu vào được kiểm ở tầng ứng dụng (A05) — ĐÃ LÀM
 Minh chứng: (a) 10 quy tắc chất lượng chặn dữ liệu sai trước khi nạp: dữ liệu mẫu lỗi → 30 dòng vào `reject_rows` (TC-08 PASS), điểm 0/6 và nhận xét 501 ký tự bị loại (TC-04, TC-05 PASS). (b) Truy vấn dashboard dùng tham số `?` cho ngày và trung tâm (`src/queries.py`, hàm `_where`), ngưỡng điểm thấp ép `int()`. (c) `grep` các câu SQL ghép chuỗi: chỉ còn `{_metrics}`, `{_JOINS}`, `{w}` (chuỗi cố định trong mã) và tên bảng/cột truyền từ mã (`sqlite_loader.py`) — không có dữ liệu người dùng hay dữ liệu CSV trong câu SQL.
@@ -20,12 +20,12 @@ Lý do: hệ thống không lưu mật khẩu hay tài khoản. Dữ liệu khá
 
 ## 5. Thông báo lỗi không lộ cấu trúc trong (A10, A02) — ĐÃ LÀM (sau khi sửa BUG-07)
 Minh chứng: trước khi sửa, kho chưa có bảng làm dashboard in ra `Execution failed on sql 'SELECT center_key, center_name FROM dim_center ...': no such table: dim_center` (`docs/evidence/bug07-before-fix.txt`). Sau khi sửa, dashboard chỉ hiện câu chung và ghi chi tiết vào log máy chủ; test `test_loi_dashboard_khong_lo_cau_truc_ben_trong` PASS (TC-12). Pipeline là công cụ dòng lệnh cho người vận hành nên vẫn in traceback ra console.
-Ảnh: `docs/screenshots/TC-12.png` `<<CHỤP>>`
+Ảnh: `docs/screenshots/TC-12.png`
 
 ## 6. Nhật ký không ghi secret, dữ liệu cá nhân (A09) — ĐÃ LÀM
 Minh chứng: `python -m src.pipeline 2>&1 | grep -iE "password|token|0[0-9]{9}"` → rỗng; log Streamlit khi chạy dashboard: 0 dòng khớp. Log của pipeline chỉ gồm số dòng; `reject_rows` chỉ lưu mã phiếu/phản hồi và lý do chung, không lưu nội dung dòng.
-Trong Docker: `docker compose logs | grep -iE "password|token|0[0-9]{9}"` → `<<ĐIỀN: kết quả khi chạy trên máy bạn, phải rỗng>>`
-Ảnh: `docs/screenshots/sec-6.png` `<<CHỤP>>`
+Trong Docker: `docker compose logs | grep -iE "password|token|0[0-9]{9}"` → `(rỗng)` — chạy ngày 13/11/2026 (PowerShell: `Select-String`)
+Ảnh: `docs/screenshots/sec-6.png`
 
 ## 7. Phụ thuộc ghim phiên bản, đã kiểm lỗ hổng (A03) — ĐÃ LÀM (phụ thuộc trực tiếp)
 Minh chứng: `requirements.txt` ghim `==` cả 5 gói; `pip-audit -r requirements.txt` → `No known vulnerabilities found` (11/11/2026); Dockerfile ghim `python:3.11-slim`.
