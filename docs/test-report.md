@@ -1,7 +1,7 @@
 # Test Report — Smart CRM CSAT (L8, track DA), tag v1.0
 
 **Môi trường chạy:** Linux, Python 3.12.3, pandas 3.0.2, pytest 9.2.0 — ngày 11/11/2026. Log gốc: `docs/evidence/` (`pytest-v.txt`, `real-pipeline-run1.txt`, `real-pipeline-run2.txt`, `demo-pipeline.txt`, `demo-rejects.txt`).
-**Chạy lại trong Docker** (lệnh của Guide, mục 5): `docker compose run --rm pipeline python -m pytest -q src` → `<<ĐIỀN: kết quả trên máy bạn, mong đợi 19 passed>>`.
+**Chạy lại trong Docker** (lệnh của Guide, mục 5): `docker compose run --rm pipeline python -m pytest -q src` → `19 passed in 8.24s` (Docker 28.1.1, 13/11/2026).
 **Tổng kết:** 12 test case, 12 PASS (TC-12 FAIL trên mã cũ → BUG-07 → PASS sau khi sửa). Bộ test tự động: `19 passed in 1.87s` (một lệnh: `python -m pytest -q src`).
 
 | ID | Loại | Mô tả | Dữ liệu vào / điều kiện | Các bước (lệnh) | Kết quả mong đợi | Kết quả thực tế | Trạng thái |
@@ -20,4 +20,4 @@
 | TC-12 | Bảo mật | Dashboard khi kho lỗi không lộ câu SQL, tên bảng, đường dẫn | Kho SQLite rỗng (không có bảng) | `pytest src/test_dashboard_error.py` | Thông báo lỗi chung; không chứa `select`, `dim_center`, `no such table` | Mã cũ: in `Execution failed on sql 'SELECT center_key…': no such table: dim_center` → FAIL (BUG-07). Sau sửa: thông báo chung → PASS | PASS (sau sửa) |
 
 Bộ test tự động còn lại (đều PASS, trong `pytest-v.txt`): 4 test ngày/điểm ở `test_normalize.py`, 1 test pipeline trọn vẹn (`test_pipeline.py`), 2 test truy vấn (kỳ rỗng; điểm thấp kèm nhận xét).
-Ảnh chụp minh chứng (mục 7 của PDF): `docs/screenshots/` `<<CHỤP: pytest PASS trong Docker · docker compose ps healthy · phép thử máy trắng>>`.
+Ảnh chụp minh chứng (mục 7 của PDF): `docs/screenshots/` `bt3-01-test-pass.png` (pytest PASS trong Docker) · `bt3-02-compose-ps.png` (`docker compose ps -a` healthy) · `bt3-03-health-dashboard.png` · `bt3-04-white-machine.png` (phép thử máy trắng) · `bt3-05-second-run.png` (chạy lần hai) · `TC-12.png`.
