@@ -1,4 +1,4 @@
-"""Xuất 2 biểu đồ ra docs/ làm minh chứng: python -m scripts.export_charts"""
+"""Xuất 2 biểu đồ ra docs/ làm minh chứng: python -m src.export_charts"""
 import sqlite3
 import matplotlib
 matplotlib.use("Agg")
